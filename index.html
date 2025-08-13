@@ -44,18 +44,22 @@
             const token = urlParams.get('cred');
             
             // This URL must be your CURRENT ngrok URL
-            const backendUrl = 'https://e3ca4d1d838f.ngrok-free.app';
+            const backendUrl = 'https://a56e4746df99.ngrok-free.app'; // Replace with your current ngrok URL
 
             if (!token) {
                 document.getElementById('loading').innerText = 'Error: Authentication token not found.';
                 return;
             }
             
+            // --- THIS IS THE CORRECTED FETCH CALL ---
             fetch(backendUrl + '/api/v1/users/me', {
                 method: 'GET',
                 headers: {
+                    // Your existing Authorization header
                     'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    // The new header to bypass the ngrok warning
+                    'ngrok-skip-browser-warning': 'true' 
                 }
             })
             .then(response => {
@@ -85,5 +89,3 @@
 
 </body>
 </html>
-
-
