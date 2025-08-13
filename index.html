@@ -44,14 +44,13 @@
             const token = urlParams.get('cred');
             
             // This URL must be your CURRENT ngrok URL
-            const backendUrl = 'https://fe53d3a72b70.ngrok-free.app';
+            const backendUrl = 'https://e3ca4d1d838f.ngrok-free.app';
 
             if (!token) {
                 document.getElementById('loading').innerText = 'Error: Authentication token not found.';
                 return;
             }
-
-            // THIS IS THE CORRECTED LINE
+            
             fetch(backendUrl + '/api/v1/users/me', {
                 method: 'GET',
                 headers: {
@@ -86,4 +85,5 @@
 
 </body>
 </html>
+
 
