@@ -20,52 +20,59 @@
         <hr>
         <p>Billing information can be displayed here.</p>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const tg = window.Telegram.WebApp;
-            tg.ready();
+       
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('cred');
-            
-            // Эта переменная все еще должна быть вашим АКТУАЛЬНЫМ ngrok URL
-            const backendUrl = 'https://a56e4746df99.ngrok-free.app';
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('cred');
+        
+        const backendUrl = 'https://a56e4746df99.ngrok-free.app';
 
-            if (!token) {
-                document.getElementById('loading').innerText = 'Error: Authentication token not found.';
-                return;
+        if (!token) {
+            document.getElementById('loading').innerText = 'Error: Authentication token not found.';
+            return;
+        }
+
+        // --- ОБНОВЛЕННЫЙ FETCH С ЗАГОЛОВКОМ ДЛЯ NGROK ---
+        fetch(backendUrl + '/api/telegram/get-user-data?token=' + token, {
+            method: 'GET',
+            headers: {
+                // Этот заголовок необходим, чтобы пропустить страницу-предупреждение от ngrok
+                'ngrok-skip-browser-warning': 'true'
             }
-
-            // --- ОБНОВЛЕННЫЙ И НАДЕЖНЫЙ FETCH ---
-            // Вызываем новый публичный прокси-эндпоинт.
-            // Токен передается как параметр. Никаких кастомных заголовков не нужно.
-            fetch(backendUrl + '/api/telegram/get-user-data?token=' + token)
-            .then(response => {
-                if (!response.ok) {
-                    // Попытаемся прочитать тело ответа, чтобы понять, что пошло не так
-                    return response.text().then(text => {
-                         throw new Error('Server returned an error: ' + response.status + ' - ' + text);
-                    });
-                }
-                // Проверяем Content-Type, чтобы убедиться, что это JSON
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    throw new TypeError("Oops, we haven't got JSON!");
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('userInfo').style.display = 'block';
-                document.getElementById('userName').innerText = data.fullName;
-                document.getElementById('userEmail').innerText = data.email;
-                tg.expand();
-            })
-            .catch(error => {
-                console.error('Error loading data:', error);
-                document.getElementById('loading').innerText = 'Failed to load data. ' + error.message;
-            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                     throw new Error('Server returned an error: ' + response.status + ' - ' + text);
+                });
+            }
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                // Если ответ не JSON, выведем его в консоль для отладки
+                return response.text().then(text => {
+                    console.error("Received non-JSON response:", text);
+                    throw new TypeError("Oops, we haven't got JSON! Check the browser console for the actual server response.");
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userName').innerText = data.fullName;
+            document.getElementById('userEmail').innerText = data.email;
+            tg.expand();
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            document.getElementById('loading').innerText = 'Failed to load data. ' + error.message;
         });
-    </script>
+    });
+</script>
 </body>
 </html>
+
