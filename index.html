@@ -43,7 +43,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('cred');
             
-            // IMPORTANT: REPLACE THIS URL WITH YOUR CURRENT NGROK URL
+            // This URL must be your CURRENT ngrok URL
             const backendUrl = 'https://f60165506711.ngrok-free.app';
 
             if (!token) {
@@ -51,6 +51,7 @@
                 return;
             }
 
+            // THIS IS THE CORRECTED LINE
             fetch(backendUrl + '/api/v1/users/me', {
                 method: 'GET',
                 headers: {
