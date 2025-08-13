@@ -29,7 +29,7 @@
             const token = urlParams.get('cred');
             
             // Эта переменная все еще должна быть вашим АКТУАЛЬНЫМ ngrok URL
-            const backendUrl = 'https://a56e4746df99.ngrok-free.app/';
+            const backendUrl = 'https://a56e4746df99.ngrok-free.app';
 
             if (!token) {
                 document.getElementById('loading').innerText = 'Error: Authentication token not found.';
@@ -42,7 +42,15 @@
             fetch(backendUrl + '/api/telegram/get-user-data?token=' + token)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Server returned an error: ' + response.status);
+                    // Попытаемся прочитать тело ответа, чтобы понять, что пошло не так
+                    return response.text().then(text => {
+                         throw new Error('Server returned an error: ' + response.status + ' - ' + text);
+                    });
+                }
+                // Проверяем Content-Type, чтобы убедиться, что это JSON
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new TypeError("Oops, we haven't got JSON!");
                 }
                 return response.json();
             })
