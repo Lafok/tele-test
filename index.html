@@ -1,91 +1,83 @@
-!DOCTYPE html
-html lang=ru
-head
-    meta charset=UTF-8
-    meta name=viewport content=width=device-width, initial-scale=1.0
-    titleHarmonicatitle
-    script src=httpstelegram.orgjstelegram-web-app.jsscript
-    style
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonica</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
         body {
-            font-family -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding 20px;
-            color var(--tg-theme-text-color);
-            background-color var(--tg-theme-bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            color: var(--tg-theme-text-color);
+            background-color: var(--tg-theme-bg-color);
         }
         #userInfo {
-            display none;
+            display: none;
         }
         #loading {
-            text-align center;
+            text-align: center;
         }
-    style
-head
-body
+    </style>
+</head>
+<body>
 
-    h1Ваш профиль Harmonicah1
+    <h1>Your Harmonica Profile</h1>
 
-    div id=loading
-        pLoadning data...p
-    div
+    <div id="loading">
+        <p>Loading data...</p>
+    </div>
 
-    div id=userInfo
-        pstrongNamestrong span id=userNamespanp
-        pstrongEmailstrong span id=userEmailspanp
-        hr
-        pBilling.p
-    div
+    <div id="userInfo">
+        <p><strong>Name:</strong> <span id="userName"></span></p>
+        <p><strong>Email:</strong> <span id="userEmail"></span></p>
+        <hr>
+        <p>Billing information can be displayed here.</p>
+    </div>
 
-    script
-         Wait, until Mini App will set
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const tg = window.Telegram.WebApp;
-            tg.ready(); Сообщаем Telegram, что приложение загрузилось
+            tg.ready();
 
-             1. Получаем JWT-токен из URL
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('cred');
 
-             Адрес вашего бэкенда (ВАЖНО он должен быть доступен из интернета)
-            const backendUrl = 'httpsf60165506711.ngrok-free.app';  -- Ваш текущий ngrok URL
+            const backendUrl = 'https://f60165506711.ngrok-free.app';
 
             if (!token) {
-                document.getElementById('loading').innerText = 'Ошибка Токен аутентификации не найден.';
+                document.getElementById('loading').innerText = 'Error: Authentication token not found.';
                 return;
             }
 
-             2. Делаем запрос к вашему API за данными пользователя
-            fetch(backendUrl + 'apiv1usersme', {
-                method 'GET',
-                headers {
-                     Передаем токен для аутентификации
-                    'Authorization' 'Bearer ' + token,
-                    'Content-Type' 'applicationjson'
+            fetch(backendUrl + '/api/v1/users/me', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
                 }
             })
-            .then(response = {
+            .then(response => {
                 if (!response.ok) {
-                    throw new Error('Ошибка сети или сервера ' + response.status);
+                    throw new Error('Network or server error: ' + response.status);
                 }
                 return response.json();
             })
-            .then(data = {
-                 3. Если все успешно, показываем данные пользователя
-                document.getElementById('loading').style.display = 'none';  Прячем загрузчик
-                document.getElementById('userInfo').style.display = 'block';  Показываем блок с инфо
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('userInfo').style.display = 'block';
 
                 document.getElementById('userName').innerText = data.fullName;
                 document.getElementById('userEmail').innerText = data.email;
 
-                 Расширяем приложение, чтобы оно занимало весь экран
                 tg.expand();
             })
-            .catch(error = {
-                 4. Если произошла ошибка, выводим ее
-                console.error('Ошибка при загрузке данных', error);
-                document.getElementById('loading').innerText = 'Не удалось загрузить данные. ' + error.message;
+            .catch(error => {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerText = 'Failed to load data. ' + error.message;
             });
         });
-    script
+    </script>
 
-body
-html
+</body>
+</html>
