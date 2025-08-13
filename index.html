@@ -6,35 +6,20 @@
     <title>Harmonica</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            color: var(--tg-theme-text-color);
-            background-color: var(--tg-theme-bg-color);
-        }
-        #userInfo {
-            display: none;
-        }
-        #loading {
-            text-align: center;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px; color: var(--tg-theme-text-color); background-color: var(--tg-theme-bg-color); }
+        #userInfo { display: none; }
+        #loading { text-align: center; }
     </style>
 </head>
 <body>
-
     <h1>Your Harmonica Profile</h1>
-
-    <div id="loading">
-        <p>Loading data...</p>
-    </div>
-
+    <div id="loading"><p>Loading data...</p></div>
     <div id="userInfo">
         <p><strong>Name:</strong> <span id="userName"></span></p>
         <p><strong>Email:</strong> <span id="userEmail"></span></p>
         <hr>
         <p>Billing information can be displayed here.</p>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const tg = window.Telegram.WebApp;
@@ -43,41 +28,29 @@
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('cred');
             
-            // This URL must be your CURRENT ngrok URL
-            const backendUrl = 'https://a56e4746df99.ngrok-free.app'; // Replace with your current ngrok URL
+            // Эта переменная все еще должна быть вашим АКТУАЛЬНЫМ ngrok URL
+            const backendUrl = 'https://a56e4746df99.ngrok-free.app/';
 
             if (!token) {
                 document.getElementById('loading').innerText = 'Error: Authentication token not found.';
                 return;
             }
-            
-            // --- THIS IS THE CORRECTED FETCH CALL ---
-            fetch(backendUrl + '/api/v1/users/me', {
-                method: 'GET',
-                headers: {
-                    // Your existing Authorization header
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    // The new header to bypass the ngrok warning
-                    'ngrok-skip-browser-warning': 'true' 
-                }
-            })
+
+            // --- ОБНОВЛЕННЫЙ И НАДЕЖНЫЙ FETCH ---
+            // Вызываем новый публичный прокси-эндпоинт.
+            // Токен передается как параметр. Никаких кастомных заголовков не нужно.
+            fetch(backendUrl + '/api/telegram/get-user-data?token=' + token)
             .then(response => {
                 if (!response.ok) {
-                    if (response.status === 403) {
-                         throw new Error('Access Denied. Check token or permissions.');
-                    }
-                    throw new Error('Network or server error: ' + response.status);
+                    throw new Error('Server returned an error: ' + response.status);
                 }
                 return response.json();
             })
             .then(data => {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('userInfo').style.display = 'block';
-
                 document.getElementById('userName').innerText = data.fullName;
                 document.getElementById('userEmail').innerText = data.email;
-
                 tg.expand();
             })
             .catch(error => {
@@ -86,6 +59,5 @@
             });
         });
     </script>
-
 </body>
 </html>
