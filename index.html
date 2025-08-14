@@ -71,8 +71,8 @@
             <div id="billing" class="page">
                 <h2>Your Billing</h2>
                 <div class="info-block">
-                    <p><strong>Subscription Plan:</strong> <span>Free Tier</span></p>
-                    <p><strong>Next Billing Date:</strong> <span>N/A</span></p>
+                    <p><strong>Subscription Plan:</strong> <span id="billingPlan"></span></p>
+                    <p><strong>Next Billing Date:</strong> <span id="billingNextDate"></span></p>
                     <p>Billing history and options will be displayed here.</p>
                 </div>
             </div>
@@ -109,6 +109,33 @@
         document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
     }
 
+        const billingPlanSpan = document.getElementById('billingPlan');
+        if (pageId === 'billing' && billingPlanSpan.dataset.loaded !== 'true') {
+            fetchBillingData();
+        }
+    }
+
+    // --- НОВАЯ ФУНКЦИЯ ---
+    async function fetchBillingData() {
+        const planSpan = document.getElementById('billingPlan');
+        const dateSpan = document.getElementById('billingNextDate');
+        try {
+            planSpan.innerText = 'Loading...';
+            dateSpan.innerText = '...';
+            
+            const billingInfo = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me/billing`);
+            
+            planSpan.innerText = billingInfo.planName;
+            // Форматируем дату в более читаемый вид
+            dateSpan.innerText = new Date(billingInfo.nextBillingDate).toLocaleDateString('en-GB');
+            planSpan.dataset.loaded = 'true'; // Помечаем, что данные загружены
+            
+        } catch (error) {
+            console.error("Failed to fetch billing data:", error);
+            document.getElementById('billing').innerHTML += '<p style="color:red; font-size: 14px;">Could not load billing info.</p>';
+        }
+    }
+    
     function displayError(message) {
         loader.style.display = 'none';
         appDiv.style.display = 'none';
@@ -247,4 +274,5 @@
   
 </body>
 </html>
+
 
