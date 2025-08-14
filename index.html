@@ -79,159 +79,172 @@
         </main>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+    
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-        const backendUrl = 'https://c029d4c10662.ngrok-free.app';
-        const CREDENTIAL_KEY = 'harmonica_telegram_credential';
+    // --- CONFIGURATION ---
+    const backendUrl = 'https://c029d4c10662.ngrok-free.app'; // Используйте ваш актуальный URL
+    const CREDENTIAL_KEY = 'harmonica_telegram_credential';
+    const API_BASE_PATH = '/api/v1'; // <--- ДОБАВЛЕНО: Базовый путь API
 
-        const loader = document.getElementById('loader');
-        const errorDiv = document.getElementById('error');
-        const appDiv = document.getElementById('app');
-        const generateCredButton = document.getElementById('generateCredButton');
+    // --- DOM ELEMENTS ---
+    const loader = document.getElementById('loader');
+    const errorDiv = document.getElementById('error');
+    const appDiv = document.getElementById('app');
+    const generateCredButton = document.getElementById('generateCredButton');
 
-        let jwtToken = null;
-        let currentUser = null;
+    // --- GLOBAL STATE ---
+    let jwtToken = null;
+    let currentUser = null;
 
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
+    // --- FUNCTIONS ---
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
+    }
+
+    function displayError(message) {
+        loader.style.display = 'none';
+        appDiv.style.display = 'none';
+        errorDiv.style.display = 'block';
+        errorDiv.innerText = message;
+    }
+    
+    async function apiFetch(url, options = {}) {
+        options.headers = {
+            ...options.headers,
+            'ngrok-skip-browser-warning': 'true'
+        };
+        if (jwtToken) {
+            options.headers['Authorization'] = 'Bearer ' + jwtToken;
         }
-
-        function displayError(message) {
-            loader.style.display = 'none';
-            appDiv.style.display = 'none';
-            errorDiv.style.display = 'block';
-            errorDiv.innerText = message;
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error ${response.status}: ${errorText}`);
         }
-        
-        async function apiFetch(url, options = {}) {
-            options.headers = {
-                ...options.headers,
-                'ngrok-skip-browser-warning': 'true'
-            };
-            if (jwtToken) {
-                options.headers['Authorization'] = 'Bearer ' + jwtToken;
-            }
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Server error ${response.status}: ${errorText}`);
-            }
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                return response.json();
-            }
-            return response.text();
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return response.json();
         }
+        return response.text();
+    }
 
-        function renderUserData(user) {
-            currentUser = user;
-            document.getElementById('welcome-message').innerText = `Welcome, ${user.firstName}!`;
-            document.getElementById('userName').innerText = user.fullName;
-            document.getElementById('userEmail').innerText = user.email;
-            document.getElementById('userId').innerText = user.id;
+    function renderUserData(user) {
+        currentUser = user;
+        document.getElementById('welcome-message').innerText = `Welcome, ${user.firstName}!`;
+        document.getElementById('userName').innerText = user.fullName;
+        document.getElementById('userEmail').innerText = user.email;
+        document.getElementById('userId').innerText = user.id;
 
-            loader.style.display = 'none';
-            appDiv.style.display = 'block';
+        loader.style.display = 'none';
+        appDiv.style.display = 'block';
+    }
+
+    async function fetchUserData() {
+        try {
+            // ИЗМЕНЕНО: Добавлен API_BASE_PATH
+            const user = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me`);
+            renderUserData(user);
+            checkCredentialStatus();
+        } catch (error) {
+            console.error("Failed to fetch user data:", error);
+            displayError("Could not load your profile. Please try restarting from Telegram.");
         }
+    }
 
-        async function fetchUserData() {
-            try {
-                const user = await apiFetch(`${backendUrl}/api/users/me`);
-                renderUserData(user);
-                checkCredentialStatus();
-            } catch (error) {
-                console.error("Failed to fetch user data:", error);
-                displayError("Could not load your profile. Please try restarting from Telegram.");
-            }
+    function checkCredentialStatus() {
+        const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
+        if (savedCredential) {
+            generateCredButton.style.display = 'none';
+        } else {
+            generateCredButton.style.display = 'block';
         }
+    }
 
-        function checkCredentialStatus() {
-            const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
-            if (savedCredential) {
-                generateCredButton.style.display = 'none';
-            } else {
-                generateCredButton.style.display = 'block';
-            }
+    async function generateAndSaveCredential() {
+        if (!currentUser) {
+            displayError("User data not loaded. Cannot generate credential.");
+            return;
         }
-
-        async function generateAndSaveCredential() {
-            if (!currentUser) {
-                displayError("User data not loaded. Cannot generate credential.");
-                return;
-            }
-            try {
-                generateCredButton.disabled = true;
-                generateCredButton.innerText = 'Linking...';
-                
-                const rawCredential = await apiFetch(`${backendUrl}/api/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
-                
-                if (typeof rawCredential === 'string' && rawCredential.length > 10) {
-                     localStorage.setItem(CREDENTIAL_KEY, rawCredential);
-                     alert('Device linked successfully! You will now be logged in automatically.');
-                     checkCredentialStatus();
-                } else {
-                    throw new Error("Received an invalid credential from server.");
-                }
-
-            } catch (error) {
-                console.error("Failed to generate credential:", error);
-                alert("Failed to link device. Please try again.");
-            } finally {
-                generateCredButton.disabled = false;
-                generateCredButton.innerText = 'Link this device';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const initialJwt = urlParams.get('cred');
-            const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
+        try {
+            generateCredButton.disabled = true;
+            generateCredButton.innerText = 'Linking...';
             
-            try {
-                if (savedCredential) {
-                    console.log("Found saved credential. Logging in...");
-                    const telegramUser = tg.initDataUnsafe?.user;
-                    if (!telegramUser) {
-                        throw new Error("Could not get Telegram user data. Please restart from the app.");
-                    }
-                    
-                    const formData = new URLSearchParams();
-                    formData.append('telegram_id', telegramUser.id);
-                    formData.append('credential', savedCredential);
-
-                    const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: formData
-                    });
-                    jwtToken = tokenResponse.token;
-
-                } else if (initialJwt) {
-                    console.log("Found JWT in URL. Performing initial login...");
-                    jwtToken = initialJwt;
-                } else {
-                    throw new Error("No login method available. Please start from the button in your Telegram chat.");
-                }
-
-                if (jwtToken) {
-                    await fetchUserData();
-                } else {
-                    throw new Error("Authentication failed. Could not obtain a token.");
-                }
-
-            } catch (error) {
-                console.error("Initialization failed:", error);
-                displayError(error.message);
-                localStorage.removeItem(CREDENTIAL_KEY);
+            // ИЗМЕНЕНО: Добавлен API_BASE_PATH
+            const rawCredential = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
+            
+            if (typeof rawCredential === 'string' && rawCredential.length > 10) {
+                 localStorage.setItem(CREDENTIAL_KEY, rawCredential);
+                 alert('Device linked successfully! You will now be logged in automatically.');
+                 checkCredentialStatus();
+            } else {
+                throw new Error("Received an invalid credential from server.");
             }
-        });
 
-    </script>
+        } catch (error) {
+            console.error("Failed to generate credential:", error);
+            alert("Failed to link device. Please try again.");
+        } finally {
+            generateCredButton.disabled = false;
+            generateCredButton.innerText = 'Link this device';
+        }
+    }
+
+    // --- MAIN LOGIC ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialJwt = urlParams.get('cred');
+        const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
+        
+        try {
+            if (savedCredential) {
+                console.log("Found saved credential. Logging in...");
+                const telegramUser = tg.initDataUnsafe?.user;
+                if (!telegramUser) {
+                    throw new Error("Could not get Telegram user data. Please restart from the app.");
+                }
+                
+                const formData = new URLSearchParams();
+                formData.append('telegram_id', telegramUser.id);
+                formData.append('credential', savedCredential);
+                
+                // Этот эндпоинт не в UserApiRestController, поэтому у него нет префикса /v1
+                const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                jwtToken = tokenResponse.token;
+
+            } else if (initialJwt) {
+                console.log("Found JWT in URL. Performing initial login...");
+                jwtToken = initialJwt;
+            } else {
+                throw new Error("No login method available. Please start from the button in your Telegram chat.");
+            }
+
+            if (jwtToken) {
+                await fetchUserData();
+            } else {
+                throw new Error("Authentication failed. Could not obtain a token.");
+            }
+
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            displayError(error.message);
+            localStorage.removeItem(CREDENTIAL_KEY);
+        }
+    });
+</script>
+
+  
 </body>
 </html>
+
