@@ -88,7 +88,7 @@
     // --- CONFIGURATION ---
     const backendUrl = 'https://c029d4c10662.ngrok-free.app'; // Используйте ваш актуальный URL
     const CREDENTIAL_KEY = 'harmonica_telegram_credential';
-    const API_BASE_PATH = '/api/v1'; // <--- ДОБАВЛЕНО: Базовый путь API
+    const API_BASE_PATH = '/api/v1';
 
     // --- DOM ELEMENTS ---
     const loader = document.getElementById('loader');
@@ -107,15 +107,14 @@
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
         document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
-    }
-
+        
+        // --- ИСПРАВЛЕНИЕ: Этот блок теперь находится ВНУТРИ функции, где ему и место ---
         const billingPlanSpan = document.getElementById('billingPlan');
         if (pageId === 'billing' && billingPlanSpan.dataset.loaded !== 'true') {
             fetchBillingData();
         }
     }
 
-    // --- НОВАЯ ФУНКЦИЯ ---
     async function fetchBillingData() {
         const planSpan = document.getElementById('billingPlan');
         const dateSpan = document.getElementById('billingNextDate');
@@ -126,13 +125,16 @@
             const billingInfo = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me/billing`);
             
             planSpan.innerText = billingInfo.planName;
-            // Форматируем дату в более читаемый вид
             dateSpan.innerText = new Date(billingInfo.nextBillingDate).toLocaleDateString('en-GB');
-            planSpan.dataset.loaded = 'true'; // Помечаем, что данные загружены
+            planSpan.dataset.loaded = 'true';
             
         } catch (error) {
             console.error("Failed to fetch billing data:", error);
-            document.getElementById('billing').innerHTML += '<p style="color:red; font-size: 14px;">Could not load billing info.</p>';
+            // Немного улучшил отображение ошибки, чтобы не затирать весь блок
+            const billingDiv = document.getElementById('billing');
+            if (!billingDiv.querySelector('.error-message')) {
+                billingDiv.innerHTML += '<p class="error-message" style="color:red; font-size: 14px;">Could not load billing info.</p>';
+            }
         }
     }
     
@@ -176,7 +178,6 @@
 
     async function fetchUserData() {
         try {
-            // ИЗМЕНЕНО: Добавлен API_BASE_PATH
             const user = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me`);
             renderUserData(user);
             checkCredentialStatus();
@@ -204,7 +205,6 @@
             generateCredButton.disabled = true;
             generateCredButton.innerText = 'Linking...';
             
-            // ИЗМЕНЕНО: Добавлен API_BASE_PATH
             const rawCredential = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
             
             if (typeof rawCredential === 'string' && rawCredential.length > 10) {
@@ -242,7 +242,6 @@
                 formData.append('telegram_id', telegramUser.id);
                 formData.append('credential', savedCredential);
                 
-                // Этот эндпоинт не в UserApiRestController, поэтому у него нет префикса /v1
                 const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -271,8 +270,5 @@
     });
 </script>
 
-  
 </body>
 </html>
-
-
