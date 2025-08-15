@@ -67,28 +67,28 @@
                 </div>
                 <button class="button" id="generateCredButton" onclick="generateAndSaveCredential()">Link this device</button>
             </div>
-
+            
+            <!-- ИСПРАВЛЕННАЯ HTML-РАЗМЕТКА ДЛЯ БИЛЛИНГА -->
             <div id="billing" class="page">
-                <h2>Your Billing</h2>
+                <h2>Your Billing (This Month)</h2>
                 <div class="info-block">
-                    <p><strong>Subscription Plan:</strong> <span id="billingPlan"></span></p>
-                    <p><strong>Next Billing Date:</strong> <span id="billingNextDate"></span></p>
-                    <p>Billing history and options will be displayed here.</p>
+                    <p><strong>Total Calls:</strong> <span id="billingTotalCalls"></span></p>
+                    <p><strong>Total Duration (sec):</strong> <span id="billingTotalDuration"></span></p>
+                    <p>This is a summary for your company's usage.</p>
                 </div>
             </div>
         </main>
     </div>
 
-    
 <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
     // --- CONFIGURATION ---
-    const backendUrl = 'https://62a23e3c63d7.ngrok-free.app'; // Используйте ваш актуальный URL
-    const CREDENTIAL_KEY = 'harmonica_telegram_credential';
+    const backendUrl = 'https://62a23e3c63d7.ngrok-free.app'; // Убедитесь, что URL актуален
     const API_BASE_PATH = '/api/v1';
+    const CREDENTIAL_KEY = 'harmonica_telegram_credential';
 
     // --- DOM ELEMENTS ---
     const loader = document.getElementById('loader');
@@ -108,29 +108,29 @@
         document.getElementById(pageId).classList.add('active');
         document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
         
-        // --- ИСПРАВЛЕНИЕ: Этот блок теперь находится ВНУТРИ функции, где ему и место ---
-        const billingPlanSpan = document.getElementById('billingPlan');
-        if (pageId === 'billing' && billingPlanSpan.dataset.loaded !== 'true') {
+        const callsSpan = document.getElementById('billingTotalCalls');
+        if (pageId === 'billing' && callsSpan && callsSpan.dataset.loaded !== 'true') {
             fetchBillingData();
         }
     }
 
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ ДАННЫХ БИЛЛИНГА
     async function fetchBillingData() {
-        const planSpan = document.getElementById('billingPlan');
-        const dateSpan = document.getElementById('billingNextDate');
+        const callsSpan = document.getElementById('billingTotalCalls');
+        const durationSpan = document.getElementById('billingTotalDuration');
         try {
-            planSpan.innerText = 'Loading...';
-            dateSpan.innerText = '...';
+            callsSpan.innerText = 'Loading...';
+            durationSpan.innerText = '...';
             
             const billingInfo = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me/billing`);
             
-            planSpan.innerText = billingInfo.planName;
-            dateSpan.innerText = new Date(billingInfo.nextBillingDate).toLocaleDateString('en-GB');
-            planSpan.dataset.loaded = 'true';
+            // Отображаем правильные поля из ответа сервера
+            callsSpan.innerText = billingInfo.totalCalls;
+            durationSpan.innerText = billingInfo.totalDuration;
+            callsSpan.dataset.loaded = 'true';
             
         } catch (error) {
             console.error("Failed to fetch billing data:", error);
-            // Немного улучшил отображение ошибки, чтобы не затирать весь блок
             const billingDiv = document.getElementById('billing');
             if (!billingDiv.querySelector('.error-message')) {
                 billingDiv.innerHTML += '<p class="error-message" style="color:red; font-size: 14px;">Could not load billing info.</p>';
@@ -138,6 +138,8 @@
         }
     }
     
+    // ... (остальной код скрипта остается без изменений) ...
+
     function displayError(message) {
         loader.style.display = 'none';
         appDiv.style.display = 'none';
@@ -146,22 +148,15 @@
     }
     
     async function apiFetch(url, options = {}) {
-        options.headers = {
-            ...options.headers,
-            'ngrok-skip-browser-warning': 'true'
-        };
-        if (jwtToken) {
-            options.headers['Authorization'] = 'Bearer ' + jwtToken;
-        }
+        options.headers = { ...options.headers, 'ngrok-skip-browser-warning': 'true' };
+        if (jwtToken) { options.headers['Authorization'] = 'Bearer ' + jwtToken; }
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Server error ${response.status}: ${errorText}`);
         }
         const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            return response.json();
-        }
+        if (contentType && contentType.includes("application/json")) { return response.json(); }
         return response.text();
     }
 
@@ -171,7 +166,6 @@
         document.getElementById('userName').innerText = user.fullName;
         document.getElementById('userEmail').innerText = user.email;
         document.getElementById('userId').innerText = user.id;
-
         loader.style.display = 'none';
         appDiv.style.display = 'block';
     }
@@ -204,9 +198,7 @@
         try {
             generateCredButton.disabled = true;
             generateCredButton.innerText = 'Linking...';
-            
             const rawCredential = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
-            
             if (typeof rawCredential === 'string' && rawCredential.length > 10) {
                  localStorage.setItem(CREDENTIAL_KEY, rawCredential);
                  alert('Device linked successfully! You will now be logged in automatically.');
@@ -214,7 +206,6 @@
             } else {
                 throw new Error("Received an invalid credential from server.");
             }
-
         } catch (error) {
             console.error("Failed to generate credential:", error);
             alert("Failed to link device. Please try again.");
@@ -224,44 +215,30 @@
         }
     }
 
-    // --- MAIN LOGIC ---
     document.addEventListener('DOMContentLoaded', async () => {
         const urlParams = new URLSearchParams(window.location.search);
         const initialJwt = urlParams.get('cred');
         const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
-        
         try {
             if (savedCredential) {
-                console.log("Found saved credential. Logging in...");
                 const telegramUser = tg.initDataUnsafe?.user;
-                if (!telegramUser) {
-                    throw new Error("Could not get Telegram user data. Please restart from the app.");
-                }
-                
+                if (!telegramUser) { throw new Error("Could not get Telegram user data. Please restart from the app."); }
                 const formData = new URLSearchParams();
                 formData.append('telegram_id', telegramUser.id);
                 formData.append('credential', savedCredential);
-                
                 const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: formData
                 });
                 jwtToken = tokenResponse.token;
-
             } else if (initialJwt) {
-                console.log("Found JWT in URL. Performing initial login...");
                 jwtToken = initialJwt;
             } else {
                 throw new Error("No login method available. Please start from the button in your Telegram chat.");
             }
-
-            if (jwtToken) {
-                await fetchUserData();
-            } else {
-                throw new Error("Authentication failed. Could not obtain a token.");
-            }
-
+            if (jwtToken) { await fetchUserData(); } 
+            else { throw new Error("Authentication failed. Could not obtain a token."); }
         } catch (error) {
             console.error("Initialization failed:", error);
             displayError(error.message);
@@ -272,4 +249,3 @@
 
 </body>
 </html>
-
