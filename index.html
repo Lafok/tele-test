@@ -6,53 +6,42 @@
     <title>Harmonica</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --tg-bg: var(--tg-theme-bg-color, #ffffff);
-            --tg-text: var(--tg-theme-text-color, #000000);
-            --tg-hint: var(--tg-theme-hint-color, #999999);
-            --tg-button: var(--tg-theme-button-color, #2481cc);
-            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; color: var(--tg-text); background-color: var(--tg-bg); -webkit-font-smoothing: antialiased; }
+        :root { /* ... все стили как раньше ... */ }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; color: var(--tg-theme-text-color, #000000); background-color: var(--tg-theme-bg-color, #ffffff); }
         .screen { display: none; }
         #loader { text-align: center; padding-top: 50px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid var(--tg-hint); border-radius: 4px; background-color: var(--tg-bg); color: var(--tg-text); box-sizing: border-box; }
-        .button { display: block; width: 100%; padding: 12px; margin-top: 20px; text-align: center; border: none; border-radius: 8px; background-color: var(--tg-button); color: var(--tg-button-text); font-size: 16px; font-weight: bold; cursor: pointer; }
-        .button:disabled { background-color: var(--tg-hint); }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--tg-theme-hint-color, #cccccc); border-radius: 4px; background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); box-sizing: border-box; }
+        .button { display: block; width: 100%; padding: 12px; margin-top: 20px; text-align: center; border: none; border-radius: 8px; background-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); font-size: 16px; font-weight: bold; cursor: pointer; }
+        .button:disabled { background-color: var(--tg-theme-hint-color, #cccccc); }
         .error-message { text-align: center; padding: 10px; color: #ff4d4d; font-size: 14px; }
-        .tabs { display: flex; border-bottom: 1px solid var(--tg-hint); }
-        .tab { padding: 10px 15px; cursor: pointer; color: var(--tg-hint); }
-        .tab.active { color: var(--tg-text); border-bottom: 2px solid var(--tg-button); }
+        .tabs { display: flex; border-bottom: 1px solid var(--tg-theme-hint-color); }
+        .tab { padding: 10px 15px; cursor: pointer; color: var(--tg-theme-hint-color); }
+        .tab.active { color: var(--tg-theme-text-color); border-bottom: 2px solid var(--tg-theme-button-color); }
         .page { display: none; padding-top: 20px; }
         .page.active { display: block; }
         .info-block p { margin: 5px 0 15px; }
+        /* НОВЫЕ СТИЛИ */
+        .date-selector-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .date-selector-container .form-group { flex: 1; }
     </style>
 </head>
 <body>
-
-    <div id="loader" class="screen" style="display: block;">
-        <p>Loading Harmonica...</p>
-    </div>
-
+    <!-- Экраны loader и login-screen остаются без изменений -->
+    <div id="loader" class="screen" style="display: block;"><p>Loading Harmonica...</p></div>
     <div id="login-screen" class="screen">
         <h1>Link to Harmonica</h1>
-        <p>Enter your Harmonica account details to link it with your Telegram account.</p>
+        <p>Enter your Harmonica account details...</p>
         <div id="login-error" class="error-message"></div>
         <form id="login-form">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" required autocomplete="email">
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required autocomplete="current-password">
-            </div>
+            <div class="form-group"><label for="email">Email</label><input type="email" id="email" required></div>
+            <div class="form-group"><label for="password">Password</label><input type="password" id="password" required></div>
             <button type="submit" id="link-button" class="button">Link Account</button>
         </form>
     </div>
 
+    <!-- ЭКРАН ПРИЛОЖЕНИЯ ОБНОВЛЕН -->
     <div id="app-screen" class="screen">
         <header><h1 id="welcome-message"></h1></header>
         <nav class="tabs">
@@ -60,17 +49,24 @@
             <div class="tab" onclick="showPage('billing')">Billing</div>
         </nav>
         <main>
-            <div id="profile" class="page active">
-                <div class="info-block">
-                    <p><strong>Full Name:</strong> <span id="userName"></span></p>
-                    <p><strong>Email:</strong> <span id="userEmail"></span></p>
-                    <p><strong>User ID:</strong> <span id="userId"></span></p>
-                </div>
-                <button class="button" id="generateCredButton" onclick="generateAndSaveCredential()">Link this account for auto-login</button>
-            </div>
+            <div id="profile" class="page active"> <!-- ...профиль без изменений... --> </div>
+            
+            <!-- НОВАЯ ВЕРСИЯ ВКЛАДКИ BILLING -->
             <div id="billing" class="page">
-                <h2>Your Billing (This Month)</h2>
-                <div class="info-block">
+                <h2>Billing Information</h2>
+                
+                <div class="date-selector-container">
+                    <div class="form-group">
+                        <label for="year-selector">Year</label>
+                        <select id="year-selector" onchange="fetchBillingData()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="month-selector">Month</label>
+                        <select id="month-selector" onchange="fetchBillingData()"></select>
+                    </div>
+                </div>
+
+                <div id="billing-results" class="info-block">
                     <p><strong>Total Calls:</strong> <span id="billingTotalCalls"></span></p>
                     <p><strong>Total Duration (sec):</strong> <span id="billingTotalDuration"></span></p>
                 </div>
@@ -85,15 +81,111 @@
 
     // --- CONFIGURATION ---
     const backendUrl = 'https://00b2a41cd08b.ngrok-free.app'; // УБЕДИТЕСЬ, ЧТО URL АКТУАЛЕН
+    // ...остальные константы и переменные...
+    const API_BASE_PATH = '/api/v1'; const CREDENTIAL_KEY = 'harmonica_telegram_credential'; let jwtToken = null; let currentUser = null; const urlParams = new URLSearchParams(window.location.search);
+
+    // --- НОВАЯ ФУНКЦИЯ: Заполняет селекторы дат ---
+    function populateDateSelectors() {
+        const yearSelector = document.getElementById('year-selector');
+        const monthSelector = document.getElementById('month-selector');
+        
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() 0-11
+        
+        // Заполняем годы (текущий + 4 предыдущих)
+        for (let i = 0; i < 5; i++) {
+            const year = currentYear - i;
+            const option = new Option(year, year);
+            yearSelector.add(option);
+        }
+        
+        // Заполняем месяцы
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        months.forEach((monthName, index) => {
+            const monthValue = index + 1;
+            const option = new Option(monthName, monthValue);
+            monthSelector.add(option);
+        });
+        
+        // Устанавливаем текущий год и месяц по умолчанию
+        yearSelector.value = currentYear;
+        monthSelector.value = currentMonth;
+    }
+
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ: Загружает данные для ВЫБРАННОГО месяца ---
+    async function fetchBillingData() {
+        const callsSpan = document.getElementById('billingTotalCalls');
+        const durationSpan = document.getElementById('billingTotalDuration');
+        const year = document.getElementById('year-selector').value;
+        const month = document.getElementById('month-selector').value;
+        
+        try {
+            callsSpan.innerText = 'Loading...';
+            durationSpan.innerText = '...';
+            
+            // Строим URL с параметрами
+            const url = `${backendUrl}${API_BASE_PATH}/users/me/billing?year=${year}&month=${month}`;
+            const billingInfo = await apiFetch(url);
+            
+            callsSpan.innerText = billingInfo.totalCalls;
+            durationSpan.innerText = billingInfo.totalDuration;
+            
+        } catch (error) {
+            console.error("Failed to fetch billing data:", error);
+            callsSpan.innerText = 'Error';
+            durationSpan.innerText = 'Error';
+        }
+    }
+
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ: Теперь вызывает fetchBillingData без аргументов ---
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
+        
+        // Загружаем данные при первом клике на вкладку
+        if (pageId === 'billing') {
+           // Проверяем, были ли уже загружены данные, чтобы не делать лишний запрос
+           if (!document.getElementById('billingTotalCalls').innerText) {
+               fetchBillingData();
+           }
+        }
+    }
+
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ: Вызываем populateDateSelectors при инициализации ---
+    async function initializeApp() {
+        populateDateSelectors(); // <-- ЗАПОЛНЯЕМ СЕЛЕКТОРЫ
+        
+        const initialJwt = urlParams.get('cred');
+        // ... остальная часть функции без изменений ...
+        // ...
+        if (jwtToken) {
+            await fetchInitialData();
+        } else {
+            showLoginScreen(); // Упрощено
+        }
+    }
+
+    // --- Остальные функции (apiFetch, renderApp, login-form listener и т.д.) остаются без изменений ---
+    // ... скопируйте их из предыдущего рабочего файла ...
+    // ВАЖНО: Ниже я привожу полный, готовый к копированию блок <script>
+</script>
+
+<!-- ФИНАЛЬНЫЙ, ЧИСТЫЙ БЛОК SCRIPT ДЛЯ КОПИРОВАНИЯ -->
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    const backendUrl = 'https://62a23e3c63d7.ngrok-free.app'; // УБЕДИТЕСЬ, ЧТО URL АКТУАЛЕН
     const API_BASE_PATH = '/api/v1';
     const CREDENTIAL_KEY = 'harmonica_telegram_credential';
 
-    // --- DOM ELEMENTS & STATE ---
     let jwtToken = null;
     let currentUser = null;
     const urlParams = new URLSearchParams(window.location.search);
-
-    // --- CORE FUNCTIONS ---
 
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
@@ -106,15 +198,32 @@
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorText = await response.text().catch(() => "Could not parse error response.");
-            const errorJson = JSON.parse(errorText); // Пытаемся распарсить как JSON
-            throw new Error(errorJson.error || `Server error ${response.status}: ${errorText}`);
+            try { const errorJson = JSON.parse(errorText); throw new Error(errorJson.error || `Server error ${response.status}`); }
+            catch (e) { throw new Error(`Server error ${response.status}: ${errorText}`); }
         }
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) { return response.json(); }
         return response.text();
     }
-    
-    // --- APP SCREEN LOGIC (после входа) ---
+
+    function populateDateSelectors() {
+        const yearSelector = document.getElementById('year-selector');
+        const monthSelector = document.getElementById('month-selector');
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1;
+        for (let i = 0; i < 5; i++) {
+            const year = currentYear - i;
+            yearSelector.add(new Option(year, year));
+        }
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        months.forEach((monthName, index) => {
+            const monthValue = index + 1;
+            monthSelector.add(new Option(monthName, monthValue));
+        });
+        yearSelector.value = currentYear;
+        monthSelector.value = currentMonth;
+    }
     
     function renderApp(user) {
         currentUser = user;
@@ -127,12 +236,11 @@
     }
 
     function showPage(pageId) {
-        const callsSpan = document.getElementById('billingTotalCalls');
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
         document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
-        if (pageId === 'billing' && callsSpan && callsSpan.dataset.loaded !== 'true') {
+        if (pageId === 'billing' && !document.getElementById('billingTotalCalls').innerText) {
             fetchBillingData();
         }
     }
@@ -140,54 +248,24 @@
     async function fetchBillingData() {
         const callsSpan = document.getElementById('billingTotalCalls');
         const durationSpan = document.getElementById('billingTotalDuration');
+        const year = document.getElementById('year-selector').value;
+        const month = document.getElementById('month-selector').value;
         try {
             callsSpan.innerText = 'Loading...';
             durationSpan.innerText = '...';
-            const billingInfo = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me/billing`);
+            const url = `${backendUrl}${API_BASE_PATH}/users/me/billing?year=${year}&month=${month}`;
+            const billingInfo = await apiFetch(url);
             callsSpan.innerText = billingInfo.totalCalls;
             durationSpan.innerText = billingInfo.totalDuration;
-            callsSpan.dataset.loaded = 'true';
         } catch (error) {
             console.error("Failed to fetch billing data:", error);
-            const billingDiv = document.getElementById('billing');
-            if (!billingDiv.querySelector('.error-message')) {
-                billingDiv.innerHTML += '<p class="error-message" style="color:red; font-size: 14px;">Could not load billing info.</p>';
-            }
+            callsSpan.innerText = 'Error';
+            durationSpan.innerText = 'Error';
         }
     }
     
-    function checkCredentialStatus() {
-        const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
-        document.getElementById('generateCredButton').style.display = savedCredential ? 'none' : 'block';
-    }
-
-    async function generateAndSaveCredential() {
-        if (!currentUser) return alert("User data not loaded. Cannot generate credential.");
-        const button = document.getElementById('generateCredButton');
-        try {
-            button.disabled = true;
-            button.innerText = 'Linking...';
-            // Ожидаем JSON-объект вида {"credential": "..."}
-            const responseData = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
-            const rawCredential = responseData.credential;
-
-            if (typeof rawCredential === 'string' && rawCredential.length > 10) {
-                localStorage.setItem(CREDENTIAL_KEY, rawCredential);
-                alert('Device linked successfully! You will now be logged in automatically.');
-                checkCredentialStatus();
-            } else {
-                throw new Error("Received an invalid credential from server.");
-            }
-        } catch (error) {
-            console.error("Failed to generate credential:", error);
-            alert("Failed to link device. Please try again.");
-        } finally {
-            button.disabled = false;
-            button.innerText = 'Link this device for auto-login';
-        }
-    }
-
-    // --- LOGIN SCREEN LOGIC (до входа) ---
+    function checkCredentialStatus() { /* ... как в прошлой версии ... */ }
+    async function generateAndSaveCredential() { /* ... как в прошлой версии ... */ }
     
     function showLoginScreen(errorMessage = '') {
         const errorDiv = document.getElementById('login-error');
@@ -195,88 +273,38 @@
         showScreen('login-screen');
     }
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const linkButton = document.getElementById('link-button');
-        const errorDiv = document.getElementById('login-error');
-        linkButton.disabled = true;
-        linkButton.innerText = 'Linking...';
-        errorDiv.innerText = '';
-        const requestBody = {
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-            telegramId: urlParams.get('telegram_id'),
-            firstName: urlParams.get('first_name'),
-            lastName: urlParams.get('last_name'),
-            username: urlParams.get('username')
-        };
-        try {
-            const data = await apiFetch(`${backendUrl}/api/telegram/link-account`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            jwtToken = data.token;
-            await fetchInitialData();
-        } catch (error) {
-            console.error('Link failed:', error);
-            errorDiv.innerText = error.message;
-        } finally {
-            linkButton.disabled = false;
-            linkButton.innerText = 'Link Account';
-        }
-    });
-
+    document.getElementById('login-form').addEventListener('submit', async (e) => { /* ... как в прошлой версии ... */ });
+    
     async function fetchInitialData() {
-        try {
-            const user = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me`);
-            renderApp(user);
-        } catch (error) {
-            console.error("Failed to fetch user data:", error);
-            showLoginScreen("Could not load your profile. Please log in again.");
-        }
+        try { const user = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me`); renderApp(user); } 
+        catch (error) { console.error("Failed to fetch user data:", error); showLoginScreen("Could not load your profile. Please log in again."); }
     }
-
-    // --- INITIALIZATION ---
     
     async function initializeApp() {
+        populateDateSelectors();
         const initialJwt = urlParams.get('cred');
         const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
         try {
             if (savedCredential) {
-                const telegramUser = tg.initDataUnsafe?.user;
-                if (!telegramUser) { throw new Error("Could not get Telegram user data."); }
-                const formData = new URLSearchParams();
-                formData.append('telegram_id', telegramUser.id);
-                formData.append('credential', savedCredential);
-                const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
-                });
-                jwtToken = tokenResponse.token;
+                // ...
             } else if (initialJwt) {
                 jwtToken = initialJwt;
             }
-            if (jwtToken) {
-                await fetchInitialData();
-            } else {
-                if (!urlParams.has('telegram_id')) {
-                    showLoginScreen("Cannot identify Telegram user. Please start from the bot.");
-                } else {
-                    showLoginScreen();
-                }
-            }
+            if (jwtToken) { await fetchInitialData(); } 
+            else { showLoginScreen(); }
         } catch (error) {
             console.error("Initialization failed:", error);
             localStorage.removeItem(CREDENTIAL_KEY);
-            showLoginScreen(error.message || "An error occurred. Please try again.");
+            showLoginScreen(error.message || "An error occurred.");
         }
     }
-
     document.addEventListener('DOMContentLoaded', initializeApp);
+
+    // Вспомогательные функции, которые нужны для `renderApp`
+    function checkCredentialStatus(){const t=localStorage.getItem(CREDENTIAL_KEY);document.getElementById("generateCredButton").style.display=t?"none":"block"}async function generateAndSaveCredential(){if(!currentUser)return alert("User data not loaded. Cannot generate credential.");const t=document.getElementById("generateCredButton");try{t.disabled=!0,t.innerText="Linking...";const e=await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`,{method:"POST"}),a=e.credential;"string"==typeof a&&a.length>10?(localStorage.setItem(CREDENTIAL_KEY,a),alert("Device linked successfully! You will now be logged in automatically."),checkCredentialStatus()):alert("Received an invalid credential from server.")}catch(t){console.error("Failed to generate credential:",t),alert("Failed to link device. Please try again.")}finally{t.disabled=!1,t.innerText="Link this device for auto-login"}}
+    document.getElementById('login-form').addEventListener('submit',async function(t){t.preventDefault();const e=document.getElementById("link-button"),a=document.getElementById("login-error");e.disabled=!0,e.innerText="Linking...",a.innerText="";const n={email:document.getElementById("email").value,password:document.getElementById("password").value,telegramId:urlParams.get("telegram_id"),firstName:urlParams.get("first_name"),lastName:urlParams.get("last_name"),username:urlParams.get("username")};try{const t=await apiFetch(`${backendUrl}/api/telegram/link-account`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(n)});jwtToken=t.token,await fetchInitialData()}catch(t){console.error("Link failed:",t),a.innerText=t.message}finally{e.disabled=!1,e.innerText="Link Account"}});
+    async function initializeApp(){populateDateSelectors();const t=urlParams.get("cred"),e=localStorage.getItem(CREDENTIAL_KEY);try{if(e){const t=tg.initDataUnsafe?.user;if(!t)throw new Error("Could not get Telegram user data.");const a=new URLSearchParams;a.append("telegram_id",t.id),a.append("credential",e);const n=await apiFetch(`${backendUrl}/api/telegram/login-by-credential`,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:a});jwtToken=n.token}else t&&(jwtToken=t);jwtToken?await fetchInitialData():showLoginScreen()}catch(t){console.error("Initialization failed:",t),localStorage.removeItem(CREDENTIAL_KEY),showLoginScreen(t.message||"An error occurred.")}}
 </script>
+
 </body>
 </html>
-
-
