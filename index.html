@@ -6,19 +6,25 @@
     <title>Harmonica</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* ... (все стили из предыдущей версии остаются тут) ... */
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; color: var(--tg-theme-text-color, #000000); background-color: var(--tg-theme-bg-color, #ffffff); }
+        :root {
+            --tg-bg: var(--tg-theme-bg-color, #ffffff);
+            --tg-text: var(--tg-theme-text-color, #000000);
+            --tg-hint: var(--tg-theme-hint-color, #999999);
+            --tg-button: var(--tg-theme-button-color, #2481cc);
+            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; color: var(--tg-text); background-color: var(--tg-bg); -webkit-font-smoothing: antialiased; }
         .screen { display: none; }
         #loader { text-align: center; padding-top: 50px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid var(--tg-theme-hint-color, #cccccc); border-radius: 4px; background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); box-sizing: border-box; }
-        .button { display: block; width: 100%; padding: 12px; margin-top: 20px; text-align: center; border: none; border-radius: 8px; background-color: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #ffffff); font-size: 16px; font-weight: bold; cursor: pointer; }
-        .button:disabled { background-color: var(--tg-theme-hint-color, #cccccc); }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid var(--tg-hint); border-radius: 4px; background-color: var(--tg-bg); color: var(--tg-text); box-sizing: border-box; }
+        .button { display: block; width: 100%; padding: 12px; margin-top: 20px; text-align: center; border: none; border-radius: 8px; background-color: var(--tg-button); color: var(--tg-button-text); font-size: 16px; font-weight: bold; cursor: pointer; }
+        .button:disabled { background-color: var(--tg-hint); }
         .error-message { text-align: center; padding: 10px; color: #ff4d4d; font-size: 14px; }
-        .tabs { display: flex; border-bottom: 1px solid var(--tg-theme-hint-color); }
-        .tab { padding: 10px 15px; cursor: pointer; color: var(--tg-theme-hint-color); }
-        .tab.active { color: var(--tg-theme-text-color); border-bottom: 2px solid var(--tg-theme-button-color); }
+        .tabs { display: flex; border-bottom: 1px solid var(--tg-hint); }
+        .tab { padding: 10px 15px; cursor: pointer; color: var(--tg-hint); }
+        .tab.active { color: var(--tg-text); border-bottom: 2px solid var(--tg-button); }
         .page { display: none; padding-top: 20px; }
         .page.active { display: block; }
         .info-block p { margin: 5px 0 15px; }
@@ -30,7 +36,6 @@
         <p>Loading Harmonica...</p>
     </div>
 
-    <!-- ЭКРАН ВХОДА И ПРИВЯЗКИ -->
     <div id="login-screen" class="screen">
         <h1>Link to Harmonica</h1>
         <p>Enter your Harmonica account details to link it with your Telegram account.</p>
@@ -48,7 +53,6 @@
         </form>
     </div>
 
-    <!-- ЭКРАН ПРИЛОЖЕНИЯ (ПРОФИЛЬ, БИЛЛИНГ) -->
     <div id="app-screen" class="screen">
         <header><h1 id="welcome-message"></h1></header>
         <nav class="tabs">
@@ -89,18 +93,29 @@
     let currentUser = null;
     const urlParams = new URLSearchParams(window.location.search);
 
+    // --- CORE FUNCTIONS ---
+
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         document.getElementById(screenId).style.display = 'block';
     }
 
-    // --- APP LOGIC (после входа) ---
-    function showPage(pageId) { /* ... как в прошлой версии ... */ }
-    async function fetchBillingData() { /* ... как в прошлой версии ... */ }
-    async function apiFetch(url, options = {}) { /* ... как в прошлой версии ... */ }
-    async function generateAndSaveCredential() { /* ... как в прошлой версии ... */ }
-    function checkCredentialStatus() { /* ... как в прошлой версии ... */ }
-
+    async function apiFetch(url, options = {}) {
+        options.headers = { ...options.headers, 'ngrok-skip-browser-warning': 'true' };
+        if (jwtToken) { options.headers['Authorization'] = 'Bearer ' + jwtToken; }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => "Could not parse error response.");
+            const errorJson = JSON.parse(errorText); // Пытаемся распарсить как JSON
+            throw new Error(errorJson.error || `Server error ${response.status}: ${errorText}`);
+        }
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) { return response.json(); }
+        return response.text();
+    }
+    
+    // --- APP SCREEN LOGIC (после входа) ---
+    
     function renderApp(user) {
         currentUser = user;
         document.getElementById('welcome-message').innerText = `Welcome, ${user.firstName}!`;
@@ -110,6 +125,107 @@
         checkCredentialStatus();
         showScreen('app-screen');
     }
+
+    function showPage(pageId) {
+        const callsSpan = document.getElementById('billingTotalCalls');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
+        if (pageId === 'billing' && callsSpan && callsSpan.dataset.loaded !== 'true') {
+            fetchBillingData();
+        }
+    }
+
+    async function fetchBillingData() {
+        const callsSpan = document.getElementById('billingTotalCalls');
+        const durationSpan = document.getElementById('billingTotalDuration');
+        try {
+            callsSpan.innerText = 'Loading...';
+            durationSpan.innerText = '...';
+            const billingInfo = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me/billing`);
+            callsSpan.innerText = billingInfo.totalCalls;
+            durationSpan.innerText = billingInfo.totalDuration;
+            callsSpan.dataset.loaded = 'true';
+        } catch (error) {
+            console.error("Failed to fetch billing data:", error);
+            const billingDiv = document.getElementById('billing');
+            if (!billingDiv.querySelector('.error-message')) {
+                billingDiv.innerHTML += '<p class="error-message" style="color:red; font-size: 14px;">Could not load billing info.</p>';
+            }
+        }
+    }
+    
+    function checkCredentialStatus() {
+        const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
+        document.getElementById('generateCredButton').style.display = savedCredential ? 'none' : 'block';
+    }
+
+    async function generateAndSaveCredential() {
+        if (!currentUser) return alert("User data not loaded. Cannot generate credential.");
+        const button = document.getElementById('generateCredButton');
+        try {
+            button.disabled = true;
+            button.innerText = 'Linking...';
+            // Ожидаем JSON-объект вида {"credential": "..."}
+            const responseData = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
+            const rawCredential = responseData.credential;
+
+            if (typeof rawCredential === 'string' && rawCredential.length > 10) {
+                localStorage.setItem(CREDENTIAL_KEY, rawCredential);
+                alert('Device linked successfully! You will now be logged in automatically.');
+                checkCredentialStatus();
+            } else {
+                throw new Error("Received an invalid credential from server.");
+            }
+        } catch (error) {
+            console.error("Failed to generate credential:", error);
+            alert("Failed to link device. Please try again.");
+        } finally {
+            button.disabled = false;
+            button.innerText = 'Link this device for auto-login';
+        }
+    }
+
+    // --- LOGIN SCREEN LOGIC (до входа) ---
+    
+    function showLoginScreen(errorMessage = '') {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.innerText = errorMessage;
+        showScreen('login-screen');
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const linkButton = document.getElementById('link-button');
+        const errorDiv = document.getElementById('login-error');
+        linkButton.disabled = true;
+        linkButton.innerText = 'Linking...';
+        errorDiv.innerText = '';
+        const requestBody = {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            telegramId: urlParams.get('telegram_id'),
+            firstName: urlParams.get('first_name'),
+            lastName: urlParams.get('last_name'),
+            username: urlParams.get('username')
+        };
+        try {
+            const data = await apiFetch(`${backendUrl}/api/telegram/link-account`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            jwtToken = data.token;
+            await fetchInitialData();
+        } catch (error) {
+            console.error('Link failed:', error);
+            errorDiv.innerText = error.message;
+        } finally {
+            linkButton.disabled = false;
+            linkButton.innerText = 'Link Account';
+        }
+    });
 
     async function fetchInitialData() {
         try {
@@ -121,86 +237,30 @@
         }
     }
 
-    // --- LOGIN LOGIC (до входа) ---
-    function showLoginScreen(errorMessage = '') {
-        const errorDiv = document.getElementById('login-error');
-        errorDiv.innerText = errorMessage;
-        showScreen('login-screen');
-    }
-
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const linkButton = document.getElementById('link-button');
-        const errorDiv = document.getElementById('login-error');
-        
-        linkButton.disabled = true;
-        linkButton.innerText = 'Linking...';
-        errorDiv.innerText = '';
-
-        const requestBody = {
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-            telegramId: urlParams.get('telegram_id'),
-            firstName: urlParams.get('first_name'),
-            lastName: urlParams.get('last_name'),
-            username: urlParams.get('username')
-        };
-
-        try {
-            const response = await fetch(`${backendUrl}/api/telegram/link-account`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true' 
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Server error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            jwtToken = data.token;
-            await fetchInitialData();
-
-        } catch (error) {
-            console.error('Link failed:', error);
-            errorDiv.innerText = error.message;
-        } finally {
-            linkButton.disabled = false;
-            linkButton.innerText = 'Link Account';
-        }
-    });
-
     // --- INITIALIZATION ---
+    
     async function initializeApp() {
         const initialJwt = urlParams.get('cred');
         const savedCredential = localStorage.getItem(CREDENTIAL_KEY);
-        
         try {
             if (savedCredential) {
-                // Попытка автологина по сохраненному ключу
                 const telegramUser = tg.initDataUnsafe?.user;
                 if (!telegramUser) { throw new Error("Could not get Telegram user data."); }
-                
                 const formData = new URLSearchParams();
                 formData.append('telegram_id', telegramUser.id);
                 formData.append('credential', savedCredential);
-                
-                const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, { /* ... */ });
+                const tokenResponse = await apiFetch(`${backendUrl}/api/telegram/login-by-credential`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
                 jwtToken = tokenResponse.token;
-
             } else if (initialJwt) {
-                // Вход по временному ключу от бота (для уже привязанных)
                 jwtToken = initialJwt;
             }
-
             if (jwtToken) {
                 await fetchInitialData();
             } else {
-                // Если нет ни сохраненного, ни временного ключа - показываем форму входа
                 if (!urlParams.has('telegram_id')) {
                     showLoginScreen("Cannot identify Telegram user. Please start from the bot.");
                 } else {
@@ -209,16 +269,12 @@
             }
         } catch (error) {
             console.error("Initialization failed:", error);
-            localStorage.removeItem(CREDENTIAL_KEY); // Очищаем невалидный ключ
+            localStorage.removeItem(CREDENTIAL_KEY);
             showLoginScreen(error.message || "An error occurred. Please try again.");
         }
     }
 
     document.addEventListener('DOMContentLoaded', initializeApp);
-
-    // Вспомогательные функции, которые нужны для `renderApp`
-    function showPage(pageId){const t=document.getElementById("billingTotalCalls");document.querySelectorAll(".page").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".tab").forEach(e=>e.classList.remove("active")),document.getElementById(pageId).classList.add("active"),document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add("active"),"billing"===pageId&&t&&"true"!==t.dataset.loaded&&fetchBillingData()}async function fetchBillingData(){const t=document.getElementById("billingTotalCalls"),e=document.getElementById("billingTotalDuration");try{t.innerText="Loading...",e.innerText="...";const a=await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me/billing`);t.innerText=a.totalCalls,e.innerText=a.totalDuration,t.dataset.loaded="true"}catch(t){console.error("Failed to fetch billing data:",t);const e=document.getElementById("billing");e.querySelector(".error-message")||(e.innerHTML+='<p class="error-message" style="color:red; font-size: 14px;">Could not load billing info.</p>')}}async function apiFetch(t,e={}){e.headers={...e.headers,"ngrok-skip-browser-warning":"true"},jwtToken&&(e.headers.Authorization="Bearer "+jwtToken);const a=await fetch(t,e);if(!a.ok){const t=await a.text();throw new Error(`Server error ${a.status}: ${t}`)}const n=a.headers.get("content-type");return n&&n.includes("application/json")?a.json():a.text()}function checkCredentialStatus(){const t=localStorage.getItem(CREDENTIAL_KEY);document.getElementById("generateCredButton").style.display=t?"none":"block"}async function generateAndSaveCredential(){if(!currentUser)return void alert("User data not loaded. Cannot generate credential.");const t=document.getElementById("generateCredButton");try{t.disabled=!0,t.innerText="Linking...";const e=await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`,{method:"POST"}),a=e.credential;"string"==typeof a&&a.length>10?(localStorage.setItem(CREDENTIAL_KEY,a),alert("Device linked successfully! You will now be logged in automatically."),checkCredentialStatus()):alert("Received an invalid credential from server.")}catch(t){console.error("Failed to generate credential:",t),alert("Failed to link device. Please try again.")}finally{t.disabled=!1,t.innerText="Link this device for auto-login"}}
 </script>
 </body>
 </html>
-
