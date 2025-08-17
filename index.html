@@ -204,7 +204,7 @@
         try {
             button.disabled = true;
             button.innerText = 'Linking...';
-            const responseData = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/${currentUser.id}/telegram-credential`, { method: 'POST' });
+            const responseData = await apiFetch(`${backendUrl}/api/telegram/users/${currentUser.id}/credential`, { method: 'POST' });
             const rawCredential = responseData.credential;
             if (typeof rawCredential === 'string' && rawCredential.length > 10) {
                 localStorage.setItem(CREDENTIAL_KEY, rawCredential);
@@ -316,5 +316,6 @@
 </script>
 </body>
 </html>
+
 
 
