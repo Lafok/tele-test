@@ -264,7 +264,7 @@
 
     async function fetchInitialData() {
         try {
-            const user = await apiFetch(`${backendUrl}${API_BASE_PATH}/users/me`);
+            const user = await apiFetch(`${backendUrl}/api/telegram/me`);
             renderApp(user);
         } catch (error) {
             console.error("Failed to fetch user data:", error);
@@ -316,4 +316,5 @@
 </script>
 </body>
 </html>
+
 
