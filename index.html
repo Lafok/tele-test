@@ -182,7 +182,7 @@
         try {
             callsSpan.innerText = 'Loading...';
             durationSpan.innerText = '...';
-            const url = `${backendUrl}${API_BASE_PATH}/users/me/billing?year=${year}&month=${month}`;
+            const url = `${backendUrl}/api/telegram/me/billing?year=${year}&month=${month}`;
             const billingInfo = await apiFetch(url);
             callsSpan.innerText = billingInfo.totalCalls;
             durationSpan.innerText = billingInfo.totalDuration;
@@ -316,6 +316,7 @@
 </script>
 </body>
 </html>
+
 
 
 
